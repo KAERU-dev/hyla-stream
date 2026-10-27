@@ -20,6 +20,9 @@ public:
 
     static void initialize(bool portable);
 
+    // Keeps logs and caches under one directory, for --data-dir
+    static void initializeDataDir(QString dataDir);
+
 private:
     static QString s_CacheDir;
     static QString s_LogDir;

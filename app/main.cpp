@@ -44,6 +44,8 @@
 #include "cli/startstream.h"
 #include "cli/pair.h"
 #include "cli/commandlineparser.h"
+#include "cli/discover.h"
+#include "cli/hyla.h"
 #include "path.h"
 #include "utils.h"
 #include "gui/computermodel.h"
@@ -428,11 +430,23 @@ int main(int argc, char *argv[])
     // Set these here to allow us to use the default QSettings constructor.
     // These also ensure that our cache directory is named correctly. As such,
     // it is critical that these be called before Path::initialize().
-    QCoreApplication::setOrganizationName("Moonlight Game Streaming Project");
-    QCoreApplication::setOrganizationDomain("moonlight-stream.com");
-    QCoreApplication::setApplicationName("Moonlight");
+    //
+    // Hyla Stream uses its own names so that, even without --data-dir, it never
+    // shares settings, the pairing identity or caches with an installed Moonlight.
+    QCoreApplication::setOrganizationName("KAERU");
+    QCoreApplication::setApplicationName("Hyla Stream");
 
-    if (QFile(QDir::currentPath() + "/portable.dat").exists()) {
+    // Hyla Launcher passes --data-dir so this client never reads or writes the
+    // settings, pairing identity or caches of a Moonlight the user installed.
+    QString dataDir = Hyla::dataDirectory(Hyla::earlyArguments(argc, argv));
+    if (!dataDir.isEmpty()) {
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, dataDir);
+        QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, dataDir);
+
+        Path::initializeDataDir(dataDir);
+    }
+    else if (QFile(QDir::currentPath() + "/portable.dat").exists()) {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, QDir::currentPath());
         QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, QDir::currentPath());
@@ -724,8 +738,8 @@ int main(int argc, char *argv[])
     // Set our app name for SDL to use with PulseAudio and PipeWire. This matches what we
     // provide as our app name to libsoundio too. On SDL 2.0.18+, SDL_APP_NAME is also used
     // for screensaver inhibitor reporting.
-    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_APP_NAME, "Moonlight");
-    SDL_SetHint(SDL_HINT_APP_NAME, "Moonlight");
+    SDL_SetHint(SDL_HINT_AUDIO_DEVICE_APP_NAME, "Hyla Stream");
+    SDL_SetHint(SDL_HINT_APP_NAME, "Hyla Stream");
 
     // SDL will try to lock the mouse cursor on Wayland if it's not visible in order to
     // support applications that assume they can warp the cursor (which isn't possible
@@ -816,6 +830,7 @@ int main(int argc, char *argv[])
     GlobalCommandLineParser::ParseResult commandLineParserResult = parser.parse(app.arguments());
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::ListRequested:
+    case GlobalCommandLineParser::DiscoverRequested:
         // Don't log to the console since it will jumble the command output
         s_SuppressVerboseOutput = true;
         break;
@@ -996,6 +1011,10 @@ int main(int argc, char *argv[])
     QString initialView;
     bool hasGUI = true;
 
+    // With --hyla, status lines for Hyla Launcher replace the dialogs of CLI actions
+    auto hylaStatus = new Hyla::StatusReporter(Hyla::isStatusRequested(app.arguments()), &app);
+    engine.rootContext()->setContextProperty("hylaStatus", hylaStatus);
+
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::NormalStartRequested:
         initialView = "qrc:/gui/PcView.qml";
@@ -1009,6 +1028,7 @@ int main(int argc, char *argv[])
             QString host    = streamParser.getHost();
             QString appName = streamParser.getAppName();
             auto launcher   = new CliStartStream::Launcher(host, appName, preferences, &app);
+            hylaStatus->watchStream(launcher, host, appName);
             engine.rootContext()->setContextProperty("launcher", launcher);
             break;
         }
@@ -1027,6 +1047,7 @@ int main(int argc, char *argv[])
             PairCommandLineParser pairParser;
             pairParser.parse(app.arguments());
             auto launcher = new CliPair::Launcher(pairParser.getHost(), pairParser.getPredefinedPin(), &app);
+            hylaStatus->watchPair(launcher);
             engine.rootContext()->setContextProperty("launcher", launcher);
             break;
         }
@@ -1036,6 +1057,15 @@ int main(int argc, char *argv[])
             listParser.parse(app.arguments());
             auto launcher = new CliListApps::Launcher(listParser.getHost(), listParser, &app);
             launcher->execute(new ComputerManager(StreamingPreferences::get()));
+            hasGUI = false;
+            break;
+        }
+    case GlobalCommandLineParser::DiscoverRequested:
+        {
+            DiscoverCommandLineParser discoverParser;
+            discoverParser.parse(app.arguments());
+            auto launcher = new CliDiscover::Launcher(discoverParser.getTimeout(), discoverParser.isPrintJson(), &app);
+            launcher->execute();
             hasGUI = false;
             break;
         }

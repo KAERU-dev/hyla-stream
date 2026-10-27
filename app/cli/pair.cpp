@@ -77,6 +77,7 @@ public:
             if (m_State == StateSeekComputer) {
                 if (event.computer->pairState == NvComputer::PS_PAIRED) {
                     m_State = StateFailure;
+                    m_FailureCode = "already_paired";
                     QString msg = QObject::tr("%1 is already paired").arg(event.computer->name);
                     emit q->failed(msg);
                 }
@@ -98,6 +99,7 @@ public:
                 }
                 else {
                     m_State = StateFailure;
+                    m_FailureCode = "pairing_failed";
                     emit q->failed(event.errorMessage);
                 }
             }
@@ -106,6 +108,7 @@ public:
         case Event::Timedout:
             if (m_State == StateSeekComputer) {
                 m_State = StateFailure;
+                m_FailureCode = "host_unreachable";
                 emit q->failed(QObject::tr("Failed to connect to %1").arg(m_ComputerName));
             }
             break;
@@ -120,6 +123,7 @@ public:
     NvComputer *m_Computer;
     State m_State;
     QTimer *m_TimeoutTimer;
+    QString m_FailureCode;
 };
 
 Launcher::Launcher(QString computer, QString predefinedPin, QObject *parent)
@@ -152,6 +156,12 @@ bool Launcher::isExecuted() const
 {
     Q_D(const Launcher);
     return d->m_State != StateInit;
+}
+
+QString Launcher::failureCode() const
+{
+    Q_D(const Launcher);
+    return d->m_FailureCode;
 }
 
 void Launcher::onComputerFound(NvComputer *computer)

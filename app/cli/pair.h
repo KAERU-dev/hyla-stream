@@ -26,6 +26,9 @@ public:
     Q_INVOKABLE void execute(ComputerManager *manager);
     Q_INVOKABLE bool isExecuted() const;
 
+    // Machine-readable reason for the last failed() signal
+    QString failureCode() const;
+
 signals:
     void searchingComputer();
     void pairing(QString pcName, QString pin);

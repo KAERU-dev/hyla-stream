@@ -1,0 +1,55 @@
+---
+name: Build - Linux with system Qt
+permissions:
+  contents: read
+
+# Hyla's deb package uses the distribution's Qt 6 instead of bundling it.
+on:
+  workflow_call:
+    inputs:
+      ci_version:
+        required: true
+        type: string
+
+jobs:
+  build:
+    env:
+      CI_VERSION: ${{ inputs.ci_version }}
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          submodules: 'recursive'
+          fetch-depth: 1
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libegl1-mesa-dev libgl1-mesa-dev libopus-dev libsdl2-dev libsdl2-ttf-dev libssl-dev \
+            libavcodec-dev libavformat-dev libswscale-dev libva-dev libvdpau-dev libxkbcommon-dev wayland-protocols libdrm-dev \
+            qt6-base-dev qt6-declarative-dev libqt6svg6-dev qt6-wayland qml6-module-qtquick-controls \
+            qml6-module-qtquick-templates qml6-module-qtquick-layouts qml6-module-qtqml-workerscript \
+            qml6-module-qtquick-window qml6-module-qtquick
+
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          qmake6 ../moonlight-qt.pro CONFIG+=release
+          make -j$(nproc)
+
+      - name: Check the command line
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          build/app/moonlight --help
+          build/app/moonlight discover --help
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v6
+        with:
+          name: HylaStream-Linux-system-qt-x64-${{ env.CI_VERSION }}
+          path: build/app/moonlight
+          if-no-files-found: error

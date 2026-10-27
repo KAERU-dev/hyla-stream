@@ -376,9 +376,10 @@ ApplicationWindow {
                     updateButton.visible = true
                 }
 
+                // Hyla Stream ships and updates with Hyla Launcher, so it never asks
+                // moonlight-stream.org for Moonlight updates
                 Component.onCompleted: {
                     AutoUpdateChecker.onUpdateAvailable.connect(updateAvailable)
-                    AutoUpdateChecker.start()
                 }
 
                 Keys.onDownPressed: {

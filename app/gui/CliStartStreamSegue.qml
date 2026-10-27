@@ -23,12 +23,22 @@ Item {
     }
 
     function onLaunchFailed(message) {
+        // With --hyla, the failure is reported as a status line instead
+        if (hylaStatus.enabled) {
+            return
+        }
+
         errorDialog.text = message
         errorDialog.open()
         console.error(message)
     }
 
     function onAppQuitRequired(appName) {
+        // With --hyla, the failure is reported as a status line instead
+        if (hylaStatus.enabled) {
+            return
+        }
+
         quitAppDialog.appName = appName
         quitAppDialog.open()
     }
