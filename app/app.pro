@@ -50,7 +50,7 @@ win32 {
     }
 
     INCLUDEPATH += $$PWD/../libs/windows/include
-    LIBS += ws2_32.lib winmm.lib dxva2.lib ole32.lib gdi32.lib user32.lib d3d9.lib dwmapi.lib dbghelp.lib
+    LIBS += ws2_32.lib winmm.lib dxva2.lib ole32.lib gdi32.lib user32.lib d3d9.lib dwmapi.lib dbghelp.lib shell32.lib
 }
 macx:!disable-prebuilts {
     !exists($$PWD/../libs/mac) {
@@ -169,6 +169,7 @@ SOURCES += \
     backend/nvaddress.cpp \
     backend/nvapp.cpp \
     cli/pair.cpp \
+    cli/hyla.cpp \
     main.cpp \
     backend/computerseeker.cpp \
     backend/identitymanager.cpp \
@@ -211,6 +212,7 @@ HEADERS += \
     backend/nvaddress.h \
     backend/nvapp.h \
     cli/pair.h \
+    cli/hyla.h \
     settings/compatfetcher.h \
     settings/mappingfetcher.h \
     utils.h \

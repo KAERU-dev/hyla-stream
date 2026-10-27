@@ -44,6 +44,7 @@
 #include "cli/startstream.h"
 #include "cli/pair.h"
 #include "cli/commandlineparser.h"
+#include "cli/hyla.h"
 #include "path.h"
 #include "utils.h"
 #include "gui/computermodel.h"
@@ -432,7 +433,17 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationDomain("moonlight-stream.com");
     QCoreApplication::setApplicationName("Moonlight");
 
-    if (QFile(QDir::currentPath() + "/portable.dat").exists()) {
+    // Hyla Launcher passes --data-dir so this client never reads or writes the
+    // settings, pairing identity or caches of a Moonlight the user installed.
+    QString dataDir = Hyla::dataDirectory(Hyla::earlyArguments(argc, argv));
+    if (!dataDir.isEmpty()) {
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, dataDir);
+        QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, dataDir);
+
+        Path::initializeDataDir(dataDir);
+    }
+    else if (QFile(QDir::currentPath() + "/portable.dat").exists()) {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, QDir::currentPath());
         QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, QDir::currentPath());

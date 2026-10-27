@@ -126,3 +126,14 @@ void Path::initialize(bool portable)
         s_QmlCacheDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/qmlcache";
     }
 }
+
+void Path::initializeDataDir(QString dataDir)
+{
+    s_LogDir = dataDir + "/logs";
+    s_CacheDir = dataDir + "/cache";
+    s_BoxArtCacheDir = dataDir + "/cache/boxart";
+    s_QmlCacheDir = dataDir + "/cache/qmlcache";
+
+    // The log file is opened before anything else would create the directory
+    QDir().mkpath(s_LogDir);
+}

@@ -38,6 +38,9 @@ public:
         setSingleDashWordOptionMode(QCommandLineParser::ParseAsLongOptions);
         addHelpOption();
         addVersionOption();
+
+        // Read in main() before the parsers run; declared here so every action accepts it
+        addOption(QCommandLineOption("data-dir", "Store settings, pairing identity, caches and logs in <dir>.", "dir"));
     }
 
     void handleHelpAndVersionOptions()
