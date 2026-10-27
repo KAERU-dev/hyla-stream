@@ -44,6 +44,7 @@
 #include "cli/startstream.h"
 #include "cli/pair.h"
 #include "cli/commandlineparser.h"
+#include "cli/discover.h"
 #include "cli/hyla.h"
 #include "path.h"
 #include "utils.h"
@@ -827,6 +828,7 @@ int main(int argc, char *argv[])
     GlobalCommandLineParser::ParseResult commandLineParserResult = parser.parse(app.arguments());
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::ListRequested:
+    case GlobalCommandLineParser::DiscoverRequested:
         // Don't log to the console since it will jumble the command output
         s_SuppressVerboseOutput = true;
         break;
@@ -1053,6 +1055,15 @@ int main(int argc, char *argv[])
             listParser.parse(app.arguments());
             auto launcher = new CliListApps::Launcher(listParser.getHost(), listParser, &app);
             launcher->execute(new ComputerManager(StreamingPreferences::get()));
+            hasGUI = false;
+            break;
+        }
+    case GlobalCommandLineParser::DiscoverRequested:
+        {
+            DiscoverCommandLineParser discoverParser;
+            discoverParser.parse(app.arguments());
+            auto launcher = new CliDiscover::Launcher(discoverParser.getTimeout(), discoverParser.isPrintJson(), &app);
+            launcher->execute();
             hasGUI = false;
             break;
         }

@@ -170,6 +170,7 @@ SOURCES += \
     backend/nvapp.cpp \
     cli/pair.cpp \
     cli/hyla.cpp \
+    cli/discover.cpp \
     main.cpp \
     backend/computerseeker.cpp \
     backend/identitymanager.cpp \
@@ -213,6 +214,7 @@ HEADERS += \
     backend/nvapp.h \
     cli/pair.h \
     cli/hyla.h \
+    cli/discover.h \
     settings/compatfetcher.h \
     settings/mappingfetcher.h \
     utils.h \

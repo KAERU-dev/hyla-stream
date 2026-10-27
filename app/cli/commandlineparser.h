@@ -14,6 +14,7 @@ public:
         QuitRequested,
         PairRequested,
         ListRequested,
+        DiscoverRequested,
     };
 
     GlobalCommandLineParser();
@@ -90,4 +91,20 @@ private:
     QString m_Host;
     bool m_PrintCSV;
     bool m_Verbose;
+};
+
+class DiscoverCommandLineParser
+{
+public:
+    DiscoverCommandLineParser();
+    virtual ~DiscoverCommandLineParser();
+
+    void parse(const QStringList &args);
+
+    int getTimeout() const;
+    bool isPrintJson() const;
+
+private:
+    int m_Timeout;
+    bool m_PrintJson;
 };

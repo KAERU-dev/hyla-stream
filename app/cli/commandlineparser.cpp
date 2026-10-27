@@ -165,6 +165,7 @@ GlobalCommandLineParser::ParseResult GlobalCommandLineParser::parse(const QStrin
         "  quit            Quit the currently running app\n"
         "  stream          Start streaming an app\n"
         "  pair            Pair a new host\n"
+        "  discover        List hosts found on the local network\n"
         "\n"
         "See 'moonlight <action> --help' for help of specific action."
     );
@@ -196,6 +197,8 @@ GlobalCommandLineParser::ParseResult GlobalCommandLineParser::parse(const QStrin
                 return PairRequested;
             } else if (action == "list") {
                 return ListRequested;
+            } else if (action == "discover") {
+                return DiscoverRequested;
             }
         }
 
@@ -594,4 +597,56 @@ bool ListCommandLineParser::isPrintCSV() const
 bool ListCommandLineParser::isVerbose() const
 {
     return m_Verbose;
+}
+
+DiscoverCommandLineParser::DiscoverCommandLineParser()
+    : m_Timeout(5),
+      m_PrintJson(false)
+{
+}
+
+DiscoverCommandLineParser::~DiscoverCommandLineParser()
+{
+}
+
+void DiscoverCommandLineParser::parse(const QStringList &args)
+{
+    CommandLineParser parser;
+    parser.setupCommonOptions();
+    parser.setApplicationDescription(
+        "\n"
+        "List the hosts that announce themselves over mDNS on the local network."
+    );
+    parser.addPositionalArgument("discover", "discover hosts");
+
+    parser.addFlagOption("json", "JSON output");
+    parser.addOption(QCommandLineOption("timeout", "Seconds to wait for hosts (default 5).", "seconds"));
+
+    if (!parser.parse(args)) {
+        parser.showError(parser.errorText());
+    }
+
+    parser.handleUnknownOptions();
+
+    // This method will not return and terminates the process if --version or
+    // --help is specified
+    parser.handleHelpAndVersionOptions();
+
+    m_PrintJson = parser.isSet("json");
+    if (parser.isSet("timeout")) {
+        m_Timeout = parser.getIntOption("timeout");
+        if (!inRange(m_Timeout, 1, 60)) {
+            parser.showError("Timeout must be between 1 and 60 seconds");
+        }
+    }
+}
+
+int DiscoverCommandLineParser::getTimeout() const
+{
+    return m_Timeout;
+}
+
+bool DiscoverCommandLineParser::isPrintJson() const
+{
+    return m_PrintJson;
 }
