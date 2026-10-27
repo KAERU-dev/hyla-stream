@@ -32,6 +32,12 @@ jobs:
     with:
       ci_version: ${{ needs.setup.outputs.ci_version }}
 
+  build-linux-system-qt:
+    needs: setup
+    uses: ./.github/workflows/build-linux-system-qt.yml
+    with:
+      ci_version: ${{ needs.setup.outputs.ci_version }}
+
   build-steamlink:
     needs: setup
     uses: ./.github/workflows/build-steamlink.yml
