@@ -41,6 +41,7 @@ public:
 
         // Read in main() before the parsers run; declared here so every action accepts it
         addOption(QCommandLineOption("data-dir", "Store settings, pairing identity, caches and logs in <dir>.", "dir"));
+        addOption(QCommandLineOption("hyla", "Print JSON status lines and exit with an error code instead of showing dialogs."));
     }
 
     void handleHelpAndVersionOptions()

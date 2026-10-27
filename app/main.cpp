@@ -1007,6 +1007,10 @@ int main(int argc, char *argv[])
     QString initialView;
     bool hasGUI = true;
 
+    // With --hyla, status lines for Hyla Launcher replace the dialogs of CLI actions
+    auto hylaStatus = new Hyla::StatusReporter(Hyla::isStatusRequested(app.arguments()), &app);
+    engine.rootContext()->setContextProperty("hylaStatus", hylaStatus);
+
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::NormalStartRequested:
         initialView = "qrc:/gui/PcView.qml";
@@ -1020,6 +1024,7 @@ int main(int argc, char *argv[])
             QString host    = streamParser.getHost();
             QString appName = streamParser.getAppName();
             auto launcher   = new CliStartStream::Launcher(host, appName, preferences, &app);
+            hylaStatus->watchStream(launcher, host, appName);
             engine.rootContext()->setContextProperty("launcher", launcher);
             break;
         }
@@ -1038,6 +1043,7 @@ int main(int argc, char *argv[])
             PairCommandLineParser pairParser;
             pairParser.parse(app.arguments());
             auto launcher = new CliPair::Launcher(pairParser.getHost(), pairParser.getPredefinedPin(), &app);
+            hylaStatus->watchPair(launcher);
             engine.rootContext()->setContextProperty("launcher", launcher);
             break;
         }

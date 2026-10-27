@@ -86,6 +86,7 @@ public:
                     emit q->searchingApp();
                 } else {
                     m_State = StateFailure;
+                    m_FailureCode = "not_paired";
                     QString msg = QObject::tr("Computer %1 has not been paired. "
                                               "Please open Moonlight to pair before streaming.")
                             .arg(event.computer->name);
@@ -123,6 +124,7 @@ public:
         case Event::AppQuitCompleted:
             if (m_State == StateSeekApp && !event.errorMessage.isEmpty()) {
                 m_State = StateFailure;
+                m_FailureCode = "stream_failed";
                 emit q->failed(QObject::tr("Quitting app failed, reason: %1").arg(event.errorMessage));
             }
             break;
@@ -130,10 +132,12 @@ public:
         case Event::Timedout:
             if (m_State == StateSeekComputer) {
                 m_State = StateFailure;
+                m_FailureCode = "host_unreachable";
                 emit q->failed(QObject::tr("Failed to connect to %1").arg(m_ComputerName));
             }
             if (m_State == StateSeekApp) {
                 m_State = StateFailure;
+                m_FailureCode = "app_not_found";
                 emit q->failed(QObject::tr("Failed to find application %1").arg(m_AppName));
             }
             break;
@@ -179,6 +183,7 @@ public:
     NvComputer *m_Computer;
     State m_State;
     QTimer *m_TimeoutTimer;
+    QString m_FailureCode;
 };
 
 Launcher::Launcher(QString computer, QString app,
@@ -220,6 +225,12 @@ bool Launcher::isExecuted() const
 {
     Q_D(const Launcher);
     return d->m_State != StateInit;
+}
+
+QString Launcher::failureCode() const
+{
+    Q_D(const Launcher);
+    return d->m_FailureCode;
 }
 
 void Launcher::onComputerFound(NvComputer *computer)

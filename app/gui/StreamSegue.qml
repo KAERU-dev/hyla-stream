@@ -61,6 +61,12 @@ Item {
 
     function sessionFinished(portTestResult)
     {
+        // With --hyla, the outcome is reported as a status line instead of a dialog
+        if (hylaStatus.enabled) {
+            hylaStatus.sessionFinished(streamSegueErrorDialog.text)
+            return
+        }
+
         if (portTestResult !== 0 && portTestResult !== -1 && streamSegueErrorDialog.text) {
             streamSegueErrorDialog.text += "\n\n" + qsTr("This PC's Internet connection is blocking Moonlight. Streaming over the Internet may not work while connected to this network.")
         }
@@ -160,6 +166,10 @@ Item {
 
             // Initialize the session and probe for host/client capabilities
             if (!session.initialize(window)) {
+                // Some initialization failures are only logged, but Hyla still needs an error
+                if (hylaStatus.enabled && !streamSegueErrorDialog.text) {
+                    streamSegueErrorDialog.text = qsTr("The stream could not be initialized. See the log for details.")
+                }
                 sessionFinished(0);
                 sessionReadyForDeletion();
                 return;

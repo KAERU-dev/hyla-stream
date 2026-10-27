@@ -13,12 +13,22 @@ Item {
     }
 
     function onFailed(message) {
+        // With --hyla, the failure is reported as a status line instead
+        if (hylaStatus.enabled) {
+            return
+        }
+
         stageIndicator.visible = false
         errorDialog.text = message
         errorDialog.open()
     }
 
     function onSuccess(appName) {
+        // With --hyla, success is reported as a status line instead
+        if (hylaStatus.enabled) {
+            return
+        }
+
         stageIndicator.visible = false
         pairCompleteDialog.open()
     }

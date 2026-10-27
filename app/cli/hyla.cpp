@@ -1,6 +1,15 @@
 #include "hyla.h"
 
+#include "cli/pair.h"
+#include "cli/startstream.h"
+#include "streaming/session.h"
+
+#include <QCoreApplication>
 #include <QDir>
+#include <QJsonDocument>
+#include <QMap>
+
+#include <cstdio>
 
 #ifdef Q_OS_WIN32
 #include <qt_windows.h>
@@ -54,6 +63,103 @@ QString dataDirectory(const QStringList &args)
     }
 
     return dir.isEmpty() ? QString() : QDir(dir).absolutePath();
+}
+
+bool isStatusRequested(const QStringList &args)
+{
+    return args.contains("--hyla") || args.contains("-hyla");
+}
+
+int exitCodeForError(const QString &code)
+{
+    static const QMap<QString, int> exitCodes = {
+        {"host_unreachable", ExitHostUnreachable},
+        {"not_paired", ExitNotPaired},
+        {"already_paired", ExitAlreadyPaired},
+        {"app_not_found", ExitAppNotFound},
+        {"app_running", ExitAppRunning},
+        {"pairing_failed", ExitPairingFailed},
+        {"stream_failed", ExitStreamFailed},
+    };
+
+    Q_ASSERT(exitCodes.contains(code));
+    return exitCodes.value(code, ExitStreamFailed);
+}
+
+StatusReporter::StatusReporter(bool enabled, QObject *parent)
+    : QObject(parent),
+      m_Enabled(enabled)
+{
+}
+
+bool StatusReporter::isEnabled() const
+{
+    return m_Enabled;
+}
+
+void StatusReporter::watchStream(CliStartStream::Launcher *launcher, const QString &host, const QString &app)
+{
+    if (!m_Enabled) {
+        return;
+    }
+
+    connect(launcher, &CliStartStream::Launcher::searchingComputer, this, [this, host, app] {
+        report("starting", {{"host", host}, {"app", app}});
+    });
+    connect(launcher, &CliStartStream::Launcher::failed, this, [this, launcher](QString text) {
+        fail(launcher->failureCode(), text);
+    });
+    // The GUI asks whether to quit the running app; Hyla decides that itself
+    connect(launcher, &CliStartStream::Launcher::appQuitRequired, this, [this](QString appName) {
+        fail("app_running", QObject::tr("%1 is already running on the host").arg(appName));
+    });
+    connect(launcher, &CliStartStream::Launcher::sessionCreated, this, [this](QString, Session *session) {
+        connect(session, &Session::connectionStarted, this, [this] {
+            report("streaming");
+        });
+    });
+}
+
+void StatusReporter::watchPair(CliPair::Launcher *launcher)
+{
+    if (!m_Enabled) {
+        return;
+    }
+
+    connect(launcher, &CliPair::Launcher::pairing, this, [this](QString pcName, QString pin) {
+        report("pairing", {{"host", pcName}, {"pin", pin}});
+    });
+    connect(launcher, &CliPair::Launcher::success, this, [this] {
+        report("paired");
+        QCoreApplication::exit(ExitSuccess);
+    });
+    connect(launcher, &CliPair::Launcher::failed, this, [this, launcher](QString text) {
+        fail(launcher->failureCode(), text);
+    });
+}
+
+void StatusReporter::sessionFinished(const QString &errorText)
+{
+    if (errorText.isEmpty()) {
+        report("ended");
+        QCoreApplication::exit(ExitSuccess);
+    }
+    else {
+        fail("stream_failed", errorText);
+    }
+}
+
+void StatusReporter::report(const QString &status, QJsonObject fields)
+{
+    fields.insert("status", status);
+    fprintf(stdout, "%s\n", QJsonDocument(fields).toJson(QJsonDocument::Compact).constData());
+    fflush(stdout);
+}
+
+void StatusReporter::fail(const QString &code, const QString &message)
+{
+    report("error", {{"code", code}, {"message", message}});
+    QCoreApplication::exit(exitCodeForError(code));
 }
 
 }
