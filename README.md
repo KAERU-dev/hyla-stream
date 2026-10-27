@@ -1,3 +1,102 @@
+# Hyla Stream
+
+Hyla Stream is the KAERU fork of
+[moonlight-qt](https://github.com/moonlight-stream/moonlight-qt) that
+[Hyla Launcher](https://github.com/KAERU-dev/hyla-launcher) starts for its
+**Stream** option. "Hyla Stream" is a working name; the product name is settled
+before the first distributed build. Hyla runs it as a separate GPL-3.0
+executable through the command line below and never links it.
+
+Hyla Stream keeps moonlight-qt's GPL-3.0 license and credits; moonlight-qt's own
+README follows below. Everything not listed here is unchanged so upstream
+changes merge cleanly.
+
+## Changes from moonlight-qt
+
+- `--data-dir` keeps settings, the pairing identity, caches and logs in one
+  directory.
+- `--hyla` prints JSON status lines and exits with an error code instead of
+  showing dialogs, for the `stream` and `pair` actions.
+- A `discover` action lists hosts found over mDNS.
+- The update check against moonlight-stream.org is gone; Hyla updates this
+  client.
+- The organization and application names are `KAERU` and `Hyla Stream`, so
+  even without `--data-dir` it does not share files with an installed
+  Moonlight. Binary names, the desktop file ID and the icon are unchanged for
+  now.
+- CI also builds against the system Qt 6 on Ubuntu 24.04, for Hyla's deb
+  package.
+
+## Command-line contract
+
+Hyla depends on this contract; change it only together with Hyla's
+integration.
+
+### Options for every action
+
+| Option             | Meaning                                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| `--data-dir <dir>` | Store settings (`<dir>/KAERU/Hyla Stream.ini`), caches (`<dir>/cache`) and logs (`<dir>/logs`) in `<dir>` |
+| `--hyla`           | Print JSON status lines on stdout and exit with the codes below instead of showing dialogs                |
+
+The `HYLA_STREAM_DATA_DIR` environment variable sets the data directory when
+`--data-dir` is absent. Hyla passes the same data directory to every call so
+pairing and streaming share one identity. Qt may still keep its own shader
+cache under the standard `KAERU/Hyla Stream` cache location.
+
+### Actions
+
+```
+moonlight [options] pair <host> [--pin <4 digits>]
+moonlight [options] stream <host> <app> [stream options, see stream --help]
+moonlight [options] quit <host>
+moonlight [options] list <host> [--csv]
+moonlight [options] discover [--json] [--timeout <1-60 seconds, default 5>]
+```
+
+`quit` and `list` behave as in moonlight-qt.
+
+### Status lines (`--hyla`)
+
+Each line on stdout is one JSON object with a `status` field:
+
+| Status      | Action | Extra fields                    | Meaning                                       |
+| ----------- | ------ | ------------------------------- | --------------------------------------------- |
+| `starting`  | stream | `host`, `app`                   | Looking for the host and app                  |
+| `streaming` | stream | —                               | The connection started and video is showing   |
+| `ended`     | stream | —                               | The stream ended without an error; exit `0`   |
+| `pairing`   | pair   | `host`, `pin`                   | Enter `pin` on the host                       |
+| `paired`    | pair   | —                               | Pairing succeeded; exit `0`                   |
+| `error`     | both   | `code`, `message` (translated)  | The action failed; exit with the code below   |
+
+Logs go to stderr and the log file, never to stdout.
+
+### Exit codes
+
+| Code | `error.code`       | Meaning                                                    |
+| ---- | ------------------ | ---------------------------------------------------------- |
+| 0    | —                  | Success                                                    |
+| 1    | —                  | Invalid arguments (message on stderr, no status line)      |
+| 10   | `host_unreachable` | The host did not answer in time                            |
+| 11   | `not_paired`       | Streaming from a host that is not paired                   |
+| 12   | `already_paired`   | Pairing with a host that is already paired                 |
+| 13   | `app_not_found`    | The host has no app with that name                         |
+| 14   | `app_running`      | Another app is running on the host; quit it first          |
+| 15   | `pairing_failed`   | The host rejected pairing or the PIN was wrong             |
+| 16   | `stream_failed`    | The stream failed to start or ended with an error          |
+
+### `discover --json`
+
+Prints one JSON document after the timeout:
+
+```json
+{"hosts":[{"hostname":"desktop.local","port":47989,"addresses":["192.168.1.14","fe80::7866:d3cd:92a2:3fde"]}]}
+```
+
+Discovered hosts are not saved. Pair with one of its addresses.
+
+---
+
 # Moonlight PC
 
 [Moonlight PC](https://moonlight-stream.org) is an open source PC client for NVIDIA GameStream and [Sunshine](https://github.com/LizardByte/Sunshine).
